@@ -2,6 +2,35 @@
 
 #define FIND_DATA_SIZE (sizeof(FILE_DIRECTORY_INFORMATION) + 1024)
 
+void createFolder(const char *directoryName) {
+  IO_STATUS_BLOCK IOStatusBlock;
+  HANDLE ret = nullptr;
+  ANSI_STRING fName;
+  OBJECT_ATTRIBUTES Attribs;
+
+  char tmp[200];
+  int rc = XConvertDOSFilenameToXBOX(directoryName, tmp);
+  if (rc != STATUS_SUCCESS) {
+    return;
+  }
+
+  RtlInitAnsiString(&fName, tmp);
+  Attribs.RootDirectory = NULL;
+  Attribs.ObjectName = &fName;
+  Attribs.Attributes = OBJ_CASE_INSENSITIVE;
+
+  NTSTATUS status = NtCreateFile(&ret, GENERIC_READ | SYNCHRONIZE | DELETE,
+                                 &Attribs, &IOStatusBlock, NULL,
+                                 FILE_ATTRIBUTE_NORMAL,
+                                 FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                 FILE_SUPERSEDE,
+                                 FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT);
+
+  if (NT_SUCCESS(status)) {
+    NtClose(ret);
+  }
+}
+
 HANDLE openFolder(const char *directoryName) {
   IO_STATUS_BLOCK IOStatusBlock;
   HANDLE ret = nullptr;

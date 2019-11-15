@@ -6,7 +6,6 @@
 #include "outputLine.h"
 #include "renderer.h"
 #include "subsystems.h"
-#include "xpadinput.h"
 
 #include <type_traits>
 #include <threads.h>
@@ -15,6 +14,8 @@
 #ifdef NXDK
 #include <windows.h>
 #endif
+
+#include "settings.h"
 
 void goToMainMenu(menuItem *mI, Renderer *r, Font &f,
                   int &listSize, int &currItem, int &prevItem, int &mMS) {
@@ -28,6 +29,7 @@ void goToMainMenu(menuItem *mI, Renderer *r, Font &f,
 int main(void) {
   int init = init_systems();
   int mainMenuSelection = 0;
+  Settings settings;
   std::vector<menuItem> mainMenu;
   std::vector<xbeMenuItem> gamesList;
   std::vector<xbeMenuItem> appsList;
@@ -47,7 +49,7 @@ int main(void) {
     // Create the worker thread for populating the games list
     xbeFinderArg xfaG;
     xfaG.list = &gamesList;
-    xfaG.path = "F:\\Games\\";
+    xfaG.path = settings.getString("gamesPath");
     thrd_t thrG;
     int thread_statusG = 1;
     thrd_create(&thrG, findXBE, &xfaG);
@@ -55,7 +57,7 @@ int main(void) {
     // Create the worker thread for populating the applications list
     xbeFinderArg xfaA;
     xfaA.list = &appsList;
-    xfaA.path = "F:\\Apps\\";
+    xfaA.path = settings.getString("appsPath");
     thrd_t thrA;
     int thread_statusA = 1;
     thrd_create(&thrA, findXBE, &xfaA);

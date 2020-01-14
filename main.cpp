@@ -14,6 +14,10 @@
 #ifdef NXDK
 #include <windows.h>
 #include <hal/xbox.h>
+#define waiting(x) Sleep(x * 100)
+#else
+#include <unistd.h>
+#define waiting(x) usleep(x*100000)
 #endif
 
 void goToMainMenu(menuItem *mI, Renderer *r, Font &f,
@@ -23,6 +27,20 @@ void goToMainMenu(menuItem *mI, Renderer *r, Font &f,
   currItem = 0;
   prevItem = 1;
   mMS = 0;
+}
+
+void upOne(int *prevItem, int *currItem, int listSize) {
+    if (*currItem == 0) {
+        *currItem = listSize - 1;
+    } else {
+        --(*currItem);
+    }
+    waiting(1);
+}
+
+void downOne(int *prevItem, int *currItem, int listSize) {
+    *currItem = (*currItem + 1) % listSize;
+    waiting(1);
 }
 
 int main(void) {
@@ -38,7 +56,7 @@ int main(void) {
     SDL_GameController *sgc = SDL_GameControllerOpen(0);
     if (sgc == nullptr) {
       outputLine("Joystick Error: %s", SDL_GetError());
-      Sleep(2000);
+      waiting(2);
     }
 
     // Set a hint that we want to use our gamecontroller always
@@ -103,15 +121,9 @@ int main(void) {
           break;
         } else if (event.type == SDL_CONTROLLERBUTTONDOWN) {
           if (event.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_UP) {
-            prevItem = currItem;
-            if (currItem == 0) {
-              currItem = listSize - 1;
-            } else {
-              --currItem;
-            }
+              upOne(&prevItem, &currItem, listSize);
           } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_DPAD_DOWN) {
-            prevItem = currItem;
-            currItem = (currItem + 1) % listSize;
+              downOne(&prevItem, &currItem, listSize);
           } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_A) {
             switch (mainMenuSelection) {
             case 0:
@@ -161,6 +173,30 @@ int main(void) {
               break;
             }
           }
+        } else if (event.type == SDL_CONTROLLERAXISMOTION) {
+            if (event.caxis.axis == SDL_CONTROLLER_AXIS_LEFTY) {
+                if (event.caxis.value <= -30000) {
+                    upOne(&prevItem, &currItem, listSize);
+                    f.setPassive(&mainMenu[prevItem], &r);
+                    f.setActive(&mainMenu[currItem], &r);
+                    prevItem = currItem;
+                    menuListTexture = r.compileList(mainMenu);
+                    r.clear();
+                    r.drawBackground();
+                    r.drawMenuTexture(menuListTexture);
+                    r.flip();
+                } else if (event.caxis.value >= 30000) {
+                    downOne(&prevItem, &currItem, listSize);
+                    f.setPassive(&mainMenu[prevItem], &r);
+                    f.setActive(&mainMenu[currItem], &r);
+                    prevItem = currItem;
+                    menuListTexture = r.compileList(mainMenu);
+                    r.clear();
+                    r.drawBackground();
+                    r.drawMenuTexture(menuListTexture);
+                    r.flip();
+                }
+            }
         }
       }
       // FIXME: Loads of repetitions ahead - break out into functions

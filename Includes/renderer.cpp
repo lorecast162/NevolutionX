@@ -12,6 +12,124 @@
 // FIXME: Should probably be dynamic and dependent of font settings.
 const unsigned int FONT_TEX_SIZE = 31;
 
+// Internal helper stuff for rounded rectangle rendering
+template<class T>
+const T& clamp( const T& v, const T& lo, const T& hi ) {
+  if (v < lo) {
+    return lo;
+  } else if (v > hi) {
+    return hi;
+  }
+  return v;
+}
+
+static int corner_w = 16;
+static int corner_h = 16;
+static double radius = 22.0;
+
+void draw_corner(SDL_Surface *s, bool mirror_x, bool mirror_y) {
+  if (mirror_x) {
+    if (mirror_y) {
+      for (int i = 0; i < corner_h; ++i) {
+        for (int j = 0; j < corner_w; ++j) {
+          memset((uint32_t*)s->pixels + ((((s->h - i)*s->w) + s->w - j) - 1),
+                 clamp(std::sqrt(i*i+j*j)/radius, 0.0, 1.0) * 0xFF,
+                 s->format->BytesPerPixel);
+        }
+      }
+    } else {
+      for (int i = 0; i < corner_h; ++i) {
+        for (int j = 0; j < corner_w; ++j) {
+          memset((uint32_t*)s->pixels + (i*s->w) + s->w - j,
+                 clamp(std::sqrt(i*i+j*j)/radius, 0.0, 1.0) * 0xFF,
+                 s->format->BytesPerPixel);
+        }
+      }
+    }
+  } else {
+    if (mirror_y) {
+      for (int i = 0; i < corner_h; ++i) {
+        for (int j = 0; j < corner_w; ++j) {
+          memset((uint32_t*)s->pixels + ((s->h - i)*s->w)+j,
+                 clamp(std::sqrt(i*i+j*j)/radius, 0.0, 1.0) * 0xFF,
+                 s->format->BytesPerPixel);
+        }
+      }
+    } else {
+      for (int i = 0; i < corner_h; ++i) {
+        for (int j = 0; j < corner_w; ++j) {
+          memset((uint32_t*)s->pixels + (i * s->w)+j,
+                 clamp(std::sqrt(i*i+j*j)/radius, 0.0, 1.0) * 0xFF,
+                 s->format->BytesPerPixel);
+        }
+      }
+    }
+  }
+}
+
+void draw_gradient(SDL_Surface *s, int x, int y, int length, bool vertical, bool mirror) {
+  // Here we want to do stuff, too.
+  // x / radius;
+}
+
+void Renderer::draw_rectangle(int x, int y, int w, int h) {
+  SDL_Rect myRectangle = {x, y, w, h};
+  SDL_RenderDrawRect(renderer, &myRectangle);
+}
+
+void Renderer::draw_rounded_rectangle(int x, int y, int w, int h) {
+
+  y -= corner_h;
+  int depth = 32;
+#ifdef NXDK
+  VIDEO_MODE xmode = XVideoGetMode();
+  depth = xmode.bpp;
+#endif
+
+  SDL_Surface* s = SDL_CreateRGBSurface(0,
+                                        w + (corner_w*2), h + (corner_h*2),
+                                        depth,
+                                        0, 0, 0, 0);
+  if (s == NULL) {
+    outputLine("Surface creation failed.\n");
+    return;
+  }
+  outputLine("Locking surface\n");
+  SDL_LockSurface(s);
+  // Top row
+  draw_corner(s, false, false);
+  draw_gradient(s, x, y, w, false, false);
+  draw_corner(s, true, false);
+
+   // Middle row
+  draw_gradient(s, x, y, h, true, true);
+  draw_rectangle(x + corner_w, y + corner_h, w, h);
+  draw_gradient(s, x + corner_w + w, y, h, true, true);
+
+  // Bottom row
+  draw_corner(s, false, true);
+  draw_gradient(s, x+corner_w, y, w, false,true);
+  draw_corner(s, true, true);
+  
+  outputLine("Unlocking surface\n");
+  SDL_UnlockSurface(s);
+  outputLine("Creating texture\n");
+  SDL_Texture *t = SDL_CreateTextureFromSurface(renderer, s);
+  if (t == NULL) {
+    outputLine("Texture creation failed.\n");
+    return;
+  }
+  outputLine("Freeing surface\n");
+  //SDL_FreeSurface(s);
+  drawTexture(t, 10, 20);
+  outputLine("Destroying texture\n");
+  //destroyTexture(t);
+}
+
+/* ================================================== *
+ *                      Renderer                      *
+ * ================================================== */
+
 Renderer::Renderer() {
 #ifdef NXDK
   VIDEO_MODE xmode = XVideoGetMode();
@@ -159,6 +277,7 @@ void Renderer::drawMenuTexture(SDL_Texture* tex, int numItems, int currItem) {
 void Renderer::updateMenuFrame(std::vector<menuItem> &l, int) {
   clear();
   drawBackground();
+  draw_rounded_rectangle(30, 40, 100, 80);
   drawMenuTexture(compileList(l));
   flip();
 }

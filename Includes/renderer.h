@@ -59,6 +59,9 @@ private:
   size_t menuItemCount = 0;
   size_t lowerHalf = 0;
   size_t upperHalf = 0;
+
+  void draw_rectangle(int x, int y, int w, int h);
+  void draw_rounded_rectangle(int x, int y, int w, int h);
 };
 
 #endif

@@ -8,7 +8,7 @@ PKG_SEARCH_MODULE(SDL2TTF REQUIRED SDL2_ttf)
 find_package(SDL2 REQUIRED)
 find_package(Threads REQUIRED)
 
-include_directories(${SDL2_INCLUDE_DIRS} ${THREAD_INCLUDE_DIRS} ${SDL2TTF_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/Includes)
+include_directories(${SDL2TTF_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/Includes)
 
 add_executable(${PROJECT_NAME}
   main.cpp
@@ -27,7 +27,7 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 14)
 
 target_link_libraries(${PROJECT_NAME}
   SDL2::SDL2
-  ${CMAKE_THREAD_LIBS_INIT}
+  Threads::Threads
   ${SDL2TTF_LIBRARIES})
 
 if(MSVC)

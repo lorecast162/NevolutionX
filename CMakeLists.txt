@@ -2,9 +2,13 @@ cmake_minimum_required(VERSION 3.7)
 
 project(NevolutionX)
 
-INCLUDE(FindPkgConfig)
-
-PKG_SEARCH_MODULE(SDL2TTF REQUIRED SDL2_ttf)
+if(NXDK)
+  set(SDL2TTF_INCLUDE_DIRS  "${NXDK_DIR}/lib/sdl/SDL_ttf/")
+  set(SDL2TTF_LIBRARIES "${NXDK_DIR}/lib/libSDL_ttf.lib")
+else()
+  INCLUDE(FindPkgConfig)
+  PKG_SEARCH_MODULE(SDL2TTF REQUIRED SDL2_ttf)
+endif()
 find_package(SDL2 REQUIRED)
 find_package(Threads REQUIRED)
 

@@ -26,7 +26,7 @@ add_executable(${PROJECT_NAME}
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 14)
 
 target_link_libraries(${PROJECT_NAME}
-  ${SDL2_LIBRARIES}
+  SDL2::SDL2
   ${CMAKE_THREAD_LIBS_INIT}
   ${SDL2TTF_LIBRARIES})
 

@@ -33,6 +33,7 @@ int main(void) {
   int mainMenuSelection = 0;
   ftpServer *s = nullptr;
   std::vector<menuItem> mainMenu;
+  std::vector<xbeMenuItem> favesList;
   std::vector<xbeMenuItem> gamesList;
   std::vector<xbeMenuItem> appsList;
   if (init <= 1) {
@@ -59,10 +60,18 @@ int main(void) {
     // Create the worker thread for populating the applications list
     xbeFinderArg xfaA;
     xfaA.list = &appsList;
-    xfaA.path = "F:\\Apps\\";
+    xfaA.path = "F:\\Applications\\";
     thrd_t thrA;
     int thread_statusA = 1;
     thrd_create(&thrA, findXBE, &xfaA);
+
+    // Create the worker thread for populating the applications list
+    xbeFinderArg xfaF;
+    xfaF.list = &favesList;
+    xfaF.path = "F:\\Favourites\\";
+    thrd_t thrFav;
+    int thread_statusF = 1;
+    thrd_create(&thrFav, findXBE, &xfaF);
 
     // Start FTP server
     if (init == 0) {
@@ -84,6 +93,7 @@ int main(void) {
     Font f("D:\\vegur.ttf");
 
     // Populate main menu
+    mainMenu.push_back(menuItem("Favorites"));
     mainMenu.push_back(menuItem("Games"));
     mainMenu.push_back(menuItem("Applications"));
     mainMenu.push_back(menuItem("Launch DVD"));
@@ -109,6 +119,9 @@ int main(void) {
     while (running) {
       while (SDL_PollEvent(&event)) {
         if (event.type == SDL_QUIT) {
+          if (thread_statusF == 1) {
+            thrd_join(thrFav, &thread_statusF);
+          }
           if (thread_statusG == 1) {
             thrd_join(thrG, &thread_statusG);
           }
@@ -136,6 +149,15 @@ int main(void) {
               prevItem = 1;
               break;
             case 1:
+              if (currItem != (favesList.size() - 1)) {
+#ifdef NXDK
+                XLaunchXBE(const_cast<char*>(favesList[currItem].getXBEPath().c_str()));
+#endif
+              }
+              goToMainMenu(&favesList[currItem], &r, f, listSize, currItem, prevItem,
+                           mainMenuSelection);
+              break;
+            case 2:
               if (currItem != (gamesList.size() - 1)) {
 #ifdef NXDK
                 XLaunchXBE(const_cast<char*>(gamesList[currItem].getXBEPath().c_str()));
@@ -144,7 +166,7 @@ int main(void) {
               goToMainMenu(&gamesList[currItem], &r, f, listSize, currItem, prevItem,
                            mainMenuSelection);
               break;
-            case 2:
+            case 3:
               if (currItem != (appsList.size() - 1)) {
 #ifdef NXDK
                 XLaunchXBE(const_cast<char*>(appsList[currItem].getXBEPath().c_str()));
@@ -153,7 +175,7 @@ int main(void) {
               goToMainMenu(&appsList[currItem], &r, f, listSize, currItem, prevItem,
                            mainMenuSelection);
               break;
-            case 3:
+            case 4:
 #ifdef NXDK
               XLaunchXBE(const_cast<char*>("D:\\default.xbe"));
 #endif
@@ -190,6 +212,33 @@ int main(void) {
         }
         break;
       case 1:
+        if (thread_statusF == 1) {
+          thrd_join(thrFav, &thread_statusF);
+          // FIXME: This check sucks.
+          if (thread_statusF != 0) {
+            outputLine("Faves list gathering failed.\n");
+            mainMenuSelection = 0;
+            break;
+          }
+          favesList.push_back(xbeMenuItem("<- back",""));
+          ret = f.createTextures(favesList, &r);
+          if (ret != favesList.size()) {
+            outputLine("Faves list textures could not be created.\n");
+            mainMenuSelection = 0;
+            break;
+          }
+          r.updateMenuFrame(favesList, 0);
+          break;
+        }
+        if (prevItem != currItem) {
+          f.setPassive(&favesList.at(prevItem), &r);
+          f.setActive(&favesList.at(currItem), &r);
+          prevItem = currItem;
+          listSize = favesList.size();
+          r.updateMenuFrame(favesList, currItem);
+        }
+        break;
+      case 2:
         if (thread_statusG == 1) {
           thrd_join(thrG, &thread_statusG);
           // FIXME: This check sucks.
@@ -216,7 +265,7 @@ int main(void) {
           r.updateMenuFrame(gamesList, currItem);
         }
         break;
-      case 2:
+      case 3:
         if (thread_statusA == 1) {
           thrd_join(thrA, &thread_statusA);
           // FIXME: This check sucks.
@@ -243,17 +292,17 @@ int main(void) {
           r.updateMenuFrame(appsList, currItem);
         }
         break;
-      case 4:
+      case 5:
         // Settings menu. Not sure what we want/need here.
         // "it's a problem for the future".
         prevItem = 0;
-        currItem = 3;
+        currItem = 4;
         mainMenuSelection = 0;
         break;
-      case 5:
+      case 6:
         running = false;
         prevItem = 0;
-        currItem = 4;
+        currItem = 5;
         mainMenuSelection = 0;
         break;
       default:
